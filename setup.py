@@ -23,11 +23,11 @@ with open('README.rst') as readme:
     long_description = readme.read()
 
 setup(
-    name="PyHive",
+    name="acryl-PyHive",
     version=pyhive.__version__,
     description="Python interface to Hive",
     long_description=long_description,
-    url='https://github.com/dropbox/PyHive',
+    url='https://github.com/hsheth2/PyHive',
     author="Jing Wang",
     author_email="jing@dropbox.com",
     license="Apache License, Version 2.0",

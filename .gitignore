@@ -1,6 +1,7 @@
 cover/
 .coverage
 /dist/
+/build/
 .DS_Store
 *.egg
 /env/
@@ -9,7 +10,7 @@ cover/
 .project
 *.pyc
 .pydevproject
-/PyHive.egg-info/
+/*.egg-info/
 .settings
 .cache/
 *.iml
