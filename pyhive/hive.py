@@ -71,6 +71,28 @@ def _parse_timestamp(value):
 TYPES_CONVERTER = {"DECIMAL_TYPE": Decimal,
                    "TIMESTAMP_TYPE": _parse_timestamp}
 
+# Setting the cookie in the headers should be implemented in the thrift library.
+# We'll keep this here until that change is available in there.
+# While this https://github.com/apache/thrift/commit/69642f389a06f5ba1b374de52c6b0e29892035d8
+# was already merged, it does not handle multiple Set-Cookie headers.
+# This was taken and modified from https://github.com/dropbox/PyHive/pull/325/files#r412841634.
+class TCookieHttpClient(thrift.transport.THttpClient.THttpClient):
+    def flush(self):
+        super(TCookieHttpClient, self).flush()
+
+        cookies = self.headers.get_all('Set-Cookie')
+        if cookies:
+            parsed = [cookie.split(';')[0] for cookie in cookies]
+            customHeaders = self._THttpClient__custom_headers or {}
+            if 'Cookie' in customHeaders:
+                # Preserve previous cookies, if not overridden.
+                names = set([morsel.split('=')[0] for morsel in parsed])
+                parsed = [morsel for morsel in customHeaders['Cookie'].split('; ') if morsel.split('=')[0] not in names] + parsed
+            customHeaders.update(
+                {'Cookie': '; '.join(parsed)}
+            )
+            self.setCustomHeaders(customHeaders)
+
 
 class HiveParamEscaper(common.ParamEscaper):
     def escape_string(self, item):
@@ -120,6 +142,7 @@ class Connection(object):
         password=None,
         check_hostname=None,
         ssl_cert=None,
+        http_path='/cliservice/',
         thrift_transport=None
     ):
         """Connect to HiveServer2
@@ -131,6 +154,7 @@ class Connection(object):
         :param configuration: A dictionary of Hive settings (functionally same as the `set` command)
         :param kerberos_service_name: Use with auth='KERBEROS' only
         :param password: Use with auth='LDAP' or auth='CUSTOM' only
+        :param http_path: The base path to use for the HTTP client. Only used if scheme is http or https.
         :param thrift_transport: A ``TTransportBase`` for custom advanced usage.
             Incompatible with host, port, auth, kerberos_service_name, and password.
 
@@ -146,9 +170,9 @@ class Connection(object):
                 ssl_context.check_hostname = check_hostname == "true"
                 ssl_cert = ssl_cert or "none"
                 ssl_context.verify_mode = ssl_cert_parameter_map.get(ssl_cert, CERT_NONE)
-            thrift_transport = thrift.transport.THttpClient.THttpClient(
-                uri_or_host="{scheme}://{host}:{port}/cliservice/".format(
-                    scheme=scheme, host=host, port=port
+            thrift_transport = TCookieHttpClient(
+                uri_or_host="{scheme}://{host}:{port}{http_path}".format(
+                    scheme=scheme, host=host, port=port, http_path=http_path
                 ),
                 ssl_context=ssl_context,
             )
