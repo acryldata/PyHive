@@ -368,27 +368,31 @@ class HiveDialect(default.DefaultDialect):
     def get_table_comment(self, connection, table_name, schema=None, **kw):
         rows = self._get_table_columns(connection, table_name, schema, extended=True)
 
-        # Select out the rows in the detailed table info.
-        in_detailed_info = False
-        detailed_table_info = []
-        for row in rows:
-            col_name = row[0]
-            if col_name.strip() == '# Detailed Table Information':
-                in_detailed_info = True
-            elif col_name.startswith('# '):
-                in_detailed_info = False
-            elif in_detailed_info:
-                detailed_table_info.append(row)
-        
-        in_table_parameters = False
-        comment = None
-        for (col_name, data_type, value) in detailed_table_info:
-            if col_name.strip() == 'Table Parameters:':
-                in_table_parameters = True
-            elif in_table_parameters and data_type is not None and data_type.strip() == 'comment':
-                comment = value
+        # Remove the column type specs.
+        start_detailed_info_index = rows.index(('# Detailed Table Information', None, None))
+        assert start_detailed_info_index >= 0
+        rows = rows[start_detailed_info_index:]
 
-        return {'text': comment}
+        # Generate properties dictionary.
+        properties = {}
+        active_heading = None
+        for col_name, data_type, value in rows:
+            col_name: str = col_name.rstrip()
+            if col_name.startswith('# '):
+                continue
+            elif col_name == "" and data_type is None:
+                active_heading = None
+                continue
+            elif col_name != "" and data_type is None:
+                active_heading = col_name
+            elif col_name != "" and data_type is not None:
+                properties[col_name] = data_type.strip()
+            else:
+                # col_name == "", data_type is not None
+                prop_name = "{} {}".format(active_heading, data_type.rstrip())
+                properties[prop_name] = value.rstrip()
+        
+        return {'text': properties.get('Table Parameters: comment', None), 'properties': properties}
 
     def do_rollback(self, dbapi_connection):
         # No transactions for Hive
