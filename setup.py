@@ -45,7 +45,9 @@ setup(
     extras_require={
         'presto': ['requests>=1.0.0'],
         'trino': ['requests>=1.0.0'],
-        'hive': ['sasl>=0.2.1', 'thrift>=0.10.0', 'thrift_sasl>=0.1.0'],
+        # We use sasl3 as a drop-in replacement for sasl, since it resolves a couple
+        # build issues that sasl has, especially on MacOS systems.
+        'hive': ['sasl3>=0.2.11', 'thrift>=0.10.0', 'thrift_sasl>=0.1.0'],
         'sqlalchemy': ['sqlalchemy>=1.3.0'],
         'kerberos': ['requests_kerberos>=0.12.0'],
     },
@@ -55,7 +57,7 @@ setup(
         'pytest-cov',
         'requests>=1.0.0',
         'requests_kerberos>=0.12.0',
-        'sasl>=0.2.1',
+        'sasl3>=0.2.11',
         'sqlalchemy>=1.3.0',
         'thrift>=0.10.0',
     ],
