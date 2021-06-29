@@ -279,9 +279,10 @@ class HiveDialect(default.DefaultDialect):
         # TODO using TGetColumnsReq hangs after sending TFetchResultsReq.
         # Using DESCRIBE works but is uglier.
         try:
-            # This needs the table name to be unescaped (no backticks).
             extended = " FORMATTED" if extended else ""
-            rows = connection.execute('DESCRIBE{} {}'.format(extended, full_table)).fetchall()
+            rows = connection.execute('DESCRIBE{} {}'.format(
+                extended,
+                self.identifier_preparer.quote_identifier(full_table))).fetchall()
         except exc.OperationalError as e:
             # Does the table exist?
             regex_fmt = r'TExecuteStatementResp.*SemanticException.*Table not found {}'
