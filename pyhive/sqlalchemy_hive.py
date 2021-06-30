@@ -15,6 +15,8 @@ import re
 from sqlalchemy import exc
 from sqlalchemy import processors
 from sqlalchemy import types
+from sqlalchemy import sql
+from sqlalchemy.sql import sqltypes
 from sqlalchemy import util
 # TODO shouldn't use mysql type
 from sqlalchemy.databases import mysql
@@ -133,10 +135,10 @@ _type_map = {
     'date': HiveDate,
     'timestamp': HiveTimestamp,
     'binary': types.String,
-    'array': types.String,
-    'map': types.String,
-    'struct': types.String,
-    'uniontype': types.String,
+    'array': sqltypes.NullType,
+    'map': sqltypes.NullType,
+    'struct': sqltypes.NullType,
+    'uniontype': sqltypes.NullType,
     'decimal': HiveDecimal,
 }
 
@@ -312,13 +314,13 @@ class HiveDialect(default.DefaultDialect):
         # Filter out empty rows and comment
         rows = [row for row in rows if row[0] and row[0] != '# col_name']
         result = []
-        for (col_name, col_type, comment) in rows:
+        for (col_name, full_col_type, comment) in rows:
             if col_name == '# Partition Information':
                 break
             # Take out the more detailed type information
             # e.g. 'map<int,int>' -> 'map'
             #      'decimal(10,1)' -> decimal
-            col_type = re.search(r'^\w+', col_type).group(0)
+            col_type = re.search(r'^\w+', full_col_type).group(0)
             try:
                 coltype = _type_map[col_type]
             except KeyError:
@@ -328,6 +330,7 @@ class HiveDialect(default.DefaultDialect):
             result.append({
                 'name': col_name,
                 'type': coltype,
+                'full_type': full_col_type,
                 'nullable': True,
                 'default': None,
                 'comment': comment,
