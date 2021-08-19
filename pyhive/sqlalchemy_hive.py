@@ -275,16 +275,17 @@ class HiveDialect(default.DefaultDialect):
         return self.get_table_names(connection, schema, **kw)
 
     def _get_table_columns(self, connection, table_name, schema, extended=False):
-        full_table = table_name
+        full_table = self.identifier_preparer.quote_identifier(table_name)
         if schema:
-            full_table = schema + '.' + table_name
+            full_table = '{}.{}'.format(
+                self.identifier_preparer.quote_identifier(schema),
+                self.identifier_preparer.quote_identifier(table_name)
+            )
         # TODO using TGetColumnsReq hangs after sending TFetchResultsReq.
         # Using DESCRIBE works but is uglier.
         try:
             extended = " FORMATTED" if extended else ""
-            rows = connection.execute('DESCRIBE{} {}'.format(
-                extended,
-                self.identifier_preparer.quote_identifier(full_table))).fetchall()
+            rows = connection.execute('DESCRIBE{} {}'.format(extended, full_table)).fetchall()
         except exc.OperationalError as e:
             # Does the table exist?
             regex_fmt = r'TExecuteStatementResp.*SemanticException.*Table not found {}'
