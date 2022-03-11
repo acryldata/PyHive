@@ -11,6 +11,35 @@ class SparkSqlDialect(sqlalchemy_hive.HiveDialect):
     name = b'sparksql'
     execution_ctx_cls = default.DefaultExecutionContext
 
+    def get_table_comment(self, connection, table_name, schema=None, **kw):
+        rows = self._get_table_columns(connection, table_name, schema, extended=True)
+
+        # Remove the column type specs.
+        start_detailed_info_index = rows.index(('# Detailed Table Information', '', ''))
+        assert start_detailed_info_index >= 0
+        rows = rows[start_detailed_info_index:]
+
+        # Generate properties dictionary.
+        properties = {}
+        active_heading = None
+        for col_name, data_type, value in rows:
+            col_name: str = col_name.rstrip()
+            if col_name.startswith('# '):
+                continue
+            elif col_name == "" and data_type is None:
+                active_heading = None
+                continue
+            elif col_name != "" and data_type is None:
+                active_heading = col_name
+            elif col_name != "" and data_type is not None:
+                properties[col_name] = data_type.strip()
+            else:
+                # col_name == "", data_type is not None
+                prop_name = "{} {}".format(active_heading, data_type.rstrip())
+                properties[prop_name] = value.rstrip()
+
+        return {'text': properties.get('Table Parameters: comment', None), 'properties': properties}
+
     def get_columns(self, connection, table_name, schema=None, **kw):
         rows = self._get_table_columns(connection, table_name, schema)
         # Strip whitespace
