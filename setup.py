@@ -72,6 +72,7 @@ setup(
             "hive.https = pyhive.sqlalchemy_hive:HiveHTTPSDialect",
             'presto = pyhive.sqlalchemy_presto:PrestoDialect',
             'trino = pyhive.sqlalchemy_trino:TrinoDialect',
+            'sparksql = pyhive.sqlalchemy_sparksql:SparkSqlDialect'
         ],
     }
 )
