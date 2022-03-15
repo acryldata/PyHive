@@ -36,7 +36,7 @@ class SparkSqlDialect(sqlalchemy_hive.HiveDialect):
             return rows
 
     def get_table_names(self, connection, schema=None, **kw):
-        # we SHOW TABLES will show tables and views, SHOW VIEWS only views, if it is needed we could potentially
+        # SHOW TABLES will show tables and views, SHOW VIEWS only views, if it is needed we could potentially
         # subtract set of views from set of tables to get a proper list of only tables
         # since hive dialect implementation does not support views extraction get_view_names need to be reimplemented
         # too
