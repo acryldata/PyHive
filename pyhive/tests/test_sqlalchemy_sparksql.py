@@ -1,12 +1,14 @@
 from __future__ import absolute_import
 from __future__ import unicode_literals
 from builtins import str
+
+from sqlalchemy.engine.reflection import Inspector
+
 from pyhive.sqlalchemy_hive import HiveDate
 from pyhive.sqlalchemy_hive import HiveDecimal
 from pyhive.sqlalchemy_hive import HiveTimestamp
 from pyhive.tests.sqlalchemy_test_case import SqlAlchemyTestCase
 from pyhive.tests.sqlalchemy_test_case import with_engine_connection
-from sqlalchemy import types
 from sqlalchemy.engine import create_engine
 from sqlalchemy.schema import Column
 from sqlalchemy.schema import MetaData
@@ -218,3 +220,40 @@ class TestSqlAlchemySparksql(unittest.TestCase, SqlAlchemyTestCase):
     @with_engine_connection
     def test_supports_san_rowcount(self, engine, connection):
         self.assertFalse(engine.dialect.supports_sane_rowcount_returning)
+
+    @with_engine_connection
+    def test_very_big_struct(self, engine, connection):
+        table_name = "very_big_struct"
+        # connection.execute("""create table foo23 (a INT, b STRUCT<eventId: string,a: string>""")
+        connection.execute(f"Drop table if exists {table_name}")
+        connection.execute(f"Drop table if exists empty_struct")
+        # connection.execute(f"create table empty_struct (a int, b struct<>)")
+        connection.execute(f"""
+        create table {table_name} (a INT, b STRUCT<eventId:string,eventDate:string,eventType:string,eventSubType:string,
+        propertyId:string,id:string,adId:string,promotionId:string,statusId:string,statusName:string,
+        transactionTypeId:string,transactionTypeName:string,paymentPeriodicityId:string,paymentPeriodicityName:string,
+        propertyTypeId:string,propertyTypeName:string,propertySubtypeId:string,propertySubtypeName:string,
+        purchaseTypeId:string,purchaseTypeName:string,price:string,showPrice:string,surface:string,showSurface:string,
+        aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa:string,bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb:string,
+        aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa2:string,bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb2:string,
+        aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa3:string,bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb3:string,
+        aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa4:string,bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb4:string,
+        aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa5:string,bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb5:string,
+        aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa6:string,bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb6:string,
+        aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa7:string,bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb7:string>)
+        """)
+        table = connection.execute(f"DESCRIBE EXTENDED {table_name}").fetchall()
+        for col in table:
+            print(f"Type of column {type(col)}")
+            print(f"Row:\n{col}")
+            for a in col:
+                print(f"Column:\n{a}")
+        # tbl = Table("very_big_struct", MetaData(bind=engine), schema="default", autoload_with=connection)
+        # for col in tbl.columns:
+        #     print("New column approach")
+        #     print(col.type)
+
+        inspector = Inspector(connection)
+        cols = inspector.get_columns("very_big_struct", schema="default")
+        print(cols)
+        print(cols[1]['full_type'])
