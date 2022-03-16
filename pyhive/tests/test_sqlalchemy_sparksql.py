@@ -2,6 +2,7 @@ from __future__ import absolute_import
 from __future__ import unicode_literals
 from builtins import str
 
+from sqlalchemy import types
 
 from pyhive.sqlalchemy_hive import HiveDate
 from pyhive.sqlalchemy_hive import HiveDecimal
@@ -32,7 +33,6 @@ _ONE_ROW_COMPLEX_CONTENTS = [
     '[1,2]',
     '{1:2,3:4}',
     '{"a":1,"b":2}',
-    '{0:1}',
     decimal.Decimal('0.1'),
 ]
 
@@ -51,7 +51,6 @@ _ONE_ROW_COMPLEX_CONTENTS = [
 # ('array', 'array<int>', ''),
 # ('map', 'map<int,int>', ''),
 # ('struct', 'struct<a:int,b:int>', ''),
-# ('union', 'uniontype<int,string>', ''),
 # ('decimal', 'decimal(10,1)', '')
 # ]
 
@@ -85,37 +84,36 @@ class TestSqlAlchemySparksql(unittest.TestCase, SqlAlchemyTestCase):
     #     assert getattr(row, 'one_row.number_of_rows') == 1
     #     assert row['one_row.number_of_rows'] == 1
 
-    # @with_engine_connection
-    # def test_reflect_select(self, engine, connection):
-    #     """reflecttable should be able to fill in a table from the name"""
-    #     one_row_complex = Table('one_row_complex', MetaData(bind=engine), autoload=True)
-    #     self.assertEqual(len(one_row_complex.c), 15)
-    #     self.assertIsInstance(one_row_complex.c.string, Column)
-    #     row = one_row_complex.select().execute().fetchone()
-    #     self.assertEqual(list(row), _ONE_ROW_COMPLEX_CONTENTS)
-    #
-    #     # TODO some of these types could be filled in better
-    #     self.assertIsInstance(one_row_complex.c.boolean.type, types.Boolean)
-    #     self.assertIsInstance(one_row_complex.c.tinyint.type, types.Integer)
-    #     self.assertIsInstance(one_row_complex.c.smallint.type, types.Integer)
-    #     self.assertIsInstance(one_row_complex.c.int.type, types.Integer)
-    #     self.assertIsInstance(one_row_complex.c.bigint.type, types.BigInteger)
-    #     self.assertIsInstance(one_row_complex.c.float.type, types.Float)
-    #     self.assertIsInstance(one_row_complex.c.double.type, types.Float)
-    #     self.assertIsInstance(one_row_complex.c.string.type, types.String)
-    #     self.assertIsInstance(one_row_complex.c.timestamp.type, HiveTimestamp)
-    #     self.assertIsInstance(one_row_complex.c.binary.type, types.String)
-    #     self.assertIsInstance(one_row_complex.c.array.type, types.String)
-    #     self.assertIsInstance(one_row_complex.c.map.type, types.String)
-    #     self.assertIsInstance(one_row_complex.c.struct.type, types.String)
-    #     self.assertIsInstance(one_row_complex.c.union.type, types.String)
-    #     self.assertIsInstance(one_row_complex.c.decimal.type, HiveDecimal)
+    @with_engine_connection
+    def test_reflect_select(self, engine, connection):
+        """reflecttable should be able to fill in a table from the name"""
+        one_row_complex = Table('one_row_complex_spark', MetaData(bind=engine), autoload=True)
+        self.assertEqual(len(one_row_complex.c), len(_ONE_ROW_COMPLEX_CONTENTS))
+        self.assertIsInstance(one_row_complex.c.string, Column)
+        row = one_row_complex.select().execute().fetchone()
+        self.assertEqual(list(row), _ONE_ROW_COMPLEX_CONTENTS)
 
-    # @with_engine_connection
-    # def test_type_map(self, engine, connection):
-    #     """sqlalchemy should use the dbapi_type_map to infer types from raw queries"""
-    #     row = connection.execute('SELECT * FROM one_row_complex').fetchone()
-    #     self.assertListEqual(list(row), _ONE_ROW_COMPLEX_CONTENTS)
+        # TODO some of these types could be filled in better
+        self.assertIsInstance(one_row_complex.c.boolean.type, types.Boolean)
+        self.assertIsInstance(one_row_complex.c.tinyint.type, types.Integer)
+        self.assertIsInstance(one_row_complex.c.smallint.type, types.Integer)
+        self.assertIsInstance(one_row_complex.c.int.type, types.Integer)
+        self.assertIsInstance(one_row_complex.c.bigint.type, types.BigInteger)
+        self.assertIsInstance(one_row_complex.c.float.type, types.Float)
+        self.assertIsInstance(one_row_complex.c.double.type, types.Float)
+        self.assertIsInstance(one_row_complex.c.string.type, types.String)
+        self.assertIsInstance(one_row_complex.c.timestamp.type, HiveTimestamp)
+        self.assertIsInstance(one_row_complex.c.binary.type, types.String)
+        self.assertIsInstance(one_row_complex.c.array.type, types.NullType)
+        self.assertIsInstance(one_row_complex.c.map.type, types.NullType)
+        self.assertIsInstance(one_row_complex.c.struct.type, types.NullType)
+        self.assertIsInstance(one_row_complex.c.decimal.type, HiveDecimal)
+
+    @with_engine_connection
+    def test_type_map(self, engine, connection):
+        """sqlalchemy should use the dbapi_type_map to infer types from raw queries"""
+        row = connection.execute('SELECT * FROM one_row_complex_spark').fetchone()
+        self.assertListEqual(list(row), _ONE_ROW_COMPLEX_CONTENTS)
 
     @with_engine_connection
     def test_reserved_words(self, engine, connection):
