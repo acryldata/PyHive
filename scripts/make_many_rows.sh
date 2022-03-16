@@ -3,7 +3,9 @@
 temp_file=/tmp/pyhive_test_data_many_rows.tsv
 seq 0 9999 > $temp_file
 
-hive -e "
+command=$1
+
+$command  "
 DROP TABLE IF EXISTS many_rows;
 CREATE TABLE many_rows (
     a INT
