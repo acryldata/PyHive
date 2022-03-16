@@ -56,33 +56,11 @@ _ONE_ROW_COMPLEX_CONTENTS = [
 
 
 class TestSqlAlchemySparksql(unittest.TestCase, SqlAlchemyTestCase):
+    complex_table = "one_row_complex_spark"
+    complex_null_table = "one_row_complex_spark_null"
+
     def create_engine(self):
         return create_engine('sparksql://localhost:10001/default')
-
-    # @with_engine_connection
-    # def test_dotted_column_names(self, engine, connection):
-    #     """When Hive returns a dotted column name, both the non-dotted version should be available
-    #     as an attribute, and the dotted version should remain available as a key.
-    #     """
-    #     row = connection.execute('SELECT * FROM one_row').fetchone()
-    #     assert row.keys() == ['number_of_rows']
-    #     assert 'number_of_rows' in row
-    #     assert row.number_of_rows == 1
-    #     assert row['number_of_rows'] == 1
-    #     print(f"Row (type: {type(row)}):\n{row}\nVars:\n{dir(row)}\nitems:\n{row.items()}")
-    #     assert getattr(row, 'one_row.number_of_rows') == 1
-    #     assert row['one_row.number_of_rows'] == 1
-    #
-    # @with_engine_connection
-    # def test_dotted_column_names_raw(self, engine, connection):
-    #     """When Hive returns a dotted column name, and raw mode is on, nothing should be modified.
-    #     """
-    #     row = connection.execution_options(hive_raw_colnames=True) \
-    #         .execute('SELECT * FROM one_row').fetchone()
-    #     assert row.keys() == ['one_row.number_of_rows']
-    #     assert 'number_of_rows' not in row
-    #     assert getattr(row, 'one_row.number_of_rows') == 1
-    #     assert row['one_row.number_of_rows'] == 1
 
     @with_engine_connection
     def test_reflect_select(self, engine, connection):

@@ -34,6 +34,9 @@ def with_engine_connection(fn):
 
 
 class SqlAlchemyTestCase(with_metaclass(abc.ABCMeta, object)):
+    complex_table = "one_row_complex"
+    complex_null_table = "one_row_complex_null"
+
     @with_engine_connection
     def test_basic_query(self, engine, connection):
         rows = connection.execute('SELECT * FROM one_row').fetchall()
@@ -43,7 +46,7 @@ class SqlAlchemyTestCase(with_metaclass(abc.ABCMeta, object)):
 
     @with_engine_connection
     def test_one_row_complex_null(self, engine, connection):
-        one_row_complex_null = Table('one_row_complex_spark_null', MetaData(bind=engine), autoload=True)
+        one_row_complex_null = Table(self.complex_null_table, MetaData(bind=engine), autoload=True)
         rows = one_row_complex_null.select().execute().fetchall()
         self.assertEqual(len(rows), 1)
         self.assertEqual(list(rows[0]), [None] * len(rows[0]))
@@ -62,7 +65,7 @@ class SqlAlchemyTestCase(with_metaclass(abc.ABCMeta, object)):
     @with_engine_connection
     def test_reflect_include_columns(self, engine, connection):
         """When passed include_columns, reflecttable should filter out other columns"""
-        one_row_complex = Table('one_row_complex_spark', MetaData(bind=engine))
+        one_row_complex = Table(self.complex_table, MetaData(bind=engine))
         engine.dialect.reflecttable(
             connection, one_row_complex, include_columns=['int'],
             exclude_columns=[], resolve_fks=True)
@@ -123,7 +126,7 @@ class SqlAlchemyTestCase(with_metaclass(abc.ABCMeta, object)):
         meta = MetaData()
         meta.reflect(bind=engine)
         self.assertIn('one_row', meta.tables)
-        self.assertIn('one_row_complex_spark', meta.tables)
+        self.assertIn(self.complex_table, meta.tables)
 
         insp = sqlalchemy.inspect(engine)
         self.assertIn(
@@ -138,7 +141,7 @@ class SqlAlchemyTestCase(with_metaclass(abc.ABCMeta, object)):
 
     @with_engine_connection
     def test_char_length(self, engine, connection):
-        one_row_complex = Table('one_row_complex_spark', MetaData(bind=engine), autoload=True)
+        one_row_complex = Table(self.complex_table, MetaData(bind=engine), autoload=True)
         result = sqlalchemy.select([
             sqlalchemy.func.char_length(one_row_complex.c.string)
         ]).execute().scalar()
