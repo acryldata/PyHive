@@ -41,12 +41,12 @@ class SqlAlchemyTestCase(with_metaclass(abc.ABCMeta, object)):
         self.assertEqual(rows[0].number_of_rows, 1)  # number_of_rows is the column name
         self.assertEqual(len(rows[0]), 1)
 
-    # @with_engine_connection
-    # def test_one_row_complex_null(self, engine, connection):
-    #     one_row_complex_null = Table('one_row_complex_null', MetaData(bind=engine), autoload=True)
-    #     rows = one_row_complex_null.select().execute().fetchall()
-    #     self.assertEqual(len(rows), 1)
-    #     self.assertEqual(list(rows[0]), [None] * len(rows[0]))
+    @with_engine_connection
+    def test_one_row_complex_null(self, engine, connection):
+        one_row_complex_null = Table('one_row_complex_spark_null', MetaData(bind=engine), autoload=True)
+        rows = one_row_complex_null.select().execute().fetchall()
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(list(rows[0]), [None] * len(rows[0]))
 
     @with_engine_connection
     def test_reflect_no_such_table(self, engine, connection):
@@ -59,16 +59,16 @@ class SqlAlchemyTestCase(with_metaclass(abc.ABCMeta, object)):
             lambda: Table('this_does_not_exist', MetaData(bind=engine),
                           schema='also_does_not_exist', autoload=True))
 
-    # @with_engine_connection
-    # def test_reflect_include_columns(self, engine, connection):
-    #     """When passed include_columns, reflecttable should filter out other columns"""
-    #     one_row_complex = Table('one_row_complex', MetaData(bind=engine))
-    #     engine.dialect.reflecttable(
-    #         connection, one_row_complex, include_columns=['int'],
-    #         exclude_columns=[], resolve_fks=True)
-    #     self.assertEqual(len(one_row_complex.c), 1)
-    #     self.assertIsNotNone(one_row_complex.c.int)
-    #     self.assertRaises(AttributeError, lambda: one_row_complex.c.tinyint)
+    @with_engine_connection
+    def test_reflect_include_columns(self, engine, connection):
+        """When passed include_columns, reflecttable should filter out other columns"""
+        one_row_complex = Table('one_row_complex_spark', MetaData(bind=engine))
+        engine.dialect.reflecttable(
+            connection, one_row_complex, include_columns=['int'],
+            exclude_columns=[], resolve_fks=True)
+        self.assertEqual(len(one_row_complex.c), 1)
+        self.assertIsNotNone(one_row_complex.c.int)
+        self.assertRaises(AttributeError, lambda: one_row_complex.c.tinyint)
 
     @with_engine_connection
     def test_reflect_with_schema(self, engine, connection):
@@ -118,12 +118,12 @@ class SqlAlchemyTestCase(with_metaclass(abc.ABCMeta, object)):
         self.assertIn('pyhive_test_database', schemas)
         self.assertIn('default', schemas)
 
-    # @with_engine_connection
-    # def test_get_table_names(self, engine, connection):
-    #     meta = MetaData()
-    #     meta.reflect(bind=engine)
-    #     self.assertIn('one_row', meta.tables)
-    #     self.assertIn('one_row_complex', meta.tables)
+    @with_engine_connection
+    def test_get_table_names(self, engine, connection):
+        meta = MetaData()
+        meta.reflect(bind=engine)
+        self.assertIn('one_row', meta.tables)
+        self.assertIn('one_row_complex_spark', meta.tables)
 
         insp = sqlalchemy.inspect(engine)
         self.assertIn(
@@ -136,10 +136,10 @@ class SqlAlchemyTestCase(with_metaclass(abc.ABCMeta, object)):
         self.assertTrue(Table('one_row', MetaData(bind=engine)).exists())
         self.assertFalse(Table('this_table_does_not_exist', MetaData(bind=engine)).exists())
 
-    # @with_engine_connection
-    # def test_char_length(self, engine, connection):
-    #     one_row_complex = Table('one_row_complex', MetaData(bind=engine), autoload=True)
-    #     result = sqlalchemy.select([
-    #         sqlalchemy.func.char_length(one_row_complex.c.string)
-    #     ]).execute().scalar()
-    #     self.assertEqual(result, len('a string'))
+    @with_engine_connection
+    def test_char_length(self, engine, connection):
+        one_row_complex = Table('one_row_complex_spark', MetaData(bind=engine), autoload=True)
+        result = sqlalchemy.select([
+            sqlalchemy.func.char_length(one_row_complex.c.string)
+        ]).execute().scalar()
+        self.assertEqual(result, len('a string'))
