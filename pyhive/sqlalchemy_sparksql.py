@@ -20,6 +20,8 @@ class SparkSqlDialect(sqlalchemy_hive.HiveDialect):
         # TODO using TGetColumnsReq hangs after sending TFetchResultsReq.
         # Using DESCRIBE works but is uglier.
         try:
+            # we need to set this to avoid sparksql truncating long column types (i.e. structs), arbitrarily chose 1kk
+            connection.execute("SET spark.sql.debug.maxToStringFields=1000000")
             extended = " FORMATTED" if extended else ""
             rows = connection.execute('DESCRIBE{} {}'.format(extended, full_table)).fetchall()
         except exc.OperationalError as e:

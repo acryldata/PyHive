@@ -2,7 +2,6 @@ from __future__ import absolute_import
 from __future__ import unicode_literals
 from builtins import str
 
-from sqlalchemy.engine.reflection import Inspector
 
 from pyhive.sqlalchemy_hive import HiveDate
 from pyhive.sqlalchemy_hive import HiveDecimal
@@ -224,36 +223,30 @@ class TestSqlAlchemySparksql(unittest.TestCase, SqlAlchemyTestCase):
     @with_engine_connection
     def test_very_big_struct(self, engine, connection):
         table_name = "very_big_struct"
-        # connection.execute("""create table foo23 (a INT, b STRUCT<eventId: string,a: string>""")
         connection.execute(f"Drop table if exists {table_name}")
-        connection.execute(f"Drop table if exists empty_struct")
-        # connection.execute(f"create table empty_struct (a int, b struct<>)")
+        columns = {
+            'a': 'INT',
+            'b': "STRUCT<aaaaa:string,bb:string,c:string,d:string,"
+                 "e:string,f:string,g:string,h:string,i:string,j:string,"
+                 "k:string,kk:string,l:string,ll:string,"
+                 "eeee:string,dddd:string,r:string,o:string,"
+                 "p:string,s:string,t:string,u:string,w:string,z:string,"
+                 "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa:string,bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb:string,"
+                 "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa2:string,bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb2:string,"
+                 "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa3:string,bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb3:string,"
+                 "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa4:string,bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb4:string,"
+                 "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa5:string,bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb5:string,"
+                 "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa6:string,bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb6:string,"
+                 "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa7:string,bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb7:string>"
+        }
         connection.execute(f"""
-        create table {table_name} (a INT, b STRUCT<eventId:string,eventDate:string,eventType:string,eventSubType:string,
-        propertyId:string,id:string,adId:string,promotionId:string,statusId:string,statusName:string,
-        transactionTypeId:string,transactionTypeName:string,paymentPeriodicityId:string,paymentPeriodicityName:string,
-        propertyTypeId:string,propertyTypeName:string,propertySubtypeId:string,propertySubtypeName:string,
-        purchaseTypeId:string,purchaseTypeName:string,price:string,showPrice:string,surface:string,showSurface:string,
-        aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa:string,bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb:string,
-        aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa2:string,bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb2:string,
-        aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa3:string,bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb3:string,
-        aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa4:string,bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb4:string,
-        aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa5:string,bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb5:string,
-        aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa6:string,bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb6:string,
-        aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa7:string,bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb7:string>)
+        create table {table_name} ({",".join([col + ' ' + _type for col, _type in columns.items()])})
         """)
-        table = connection.execute(f"DESCRIBE EXTENDED {table_name}").fetchall()
-        for col in table:
-            print(f"Type of column {type(col)}")
-            print(f"Row:\n{col}")
-            for a in col:
-                print(f"Column:\n{a}")
-        # tbl = Table("very_big_struct", MetaData(bind=engine), schema="default", autoload_with=connection)
-        # for col in tbl.columns:
-        #     print("New column approach")
-        #     print(col.type)
 
-        inspector = Inspector(connection)
-        cols = inspector.get_columns("very_big_struct", schema="default")
-        print(cols)
-        print(cols[1]['full_type'])
+        insp = sqlalchemy.inspect(engine)
+        actual_columns = insp.get_columns(table_name)
+
+        for col in actual_columns:
+            assert col['name'] in columns.keys()
+            assert col['full_type'].lower() == columns[col['name']].lower()
+
