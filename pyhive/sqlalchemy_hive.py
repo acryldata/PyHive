@@ -15,7 +15,6 @@ import re
 from sqlalchemy import exc
 from sqlalchemy import processors
 from sqlalchemy import types
-from sqlalchemy import sql
 from sqlalchemy.sql import sqltypes
 from sqlalchemy import util
 # TODO shouldn't use mysql type
@@ -371,7 +370,7 @@ class HiveDialect(default.DefaultDialect):
         if schema:
             query += ' IN ' + self.identifier_preparer.quote_identifier(schema)
         return [row[0] for row in connection.execute(query)]
-    
+
     def get_table_comment(self, connection, table_name, schema=None, **kw):
         rows = self._get_table_columns(connection, table_name, schema, extended=True)
 
@@ -398,7 +397,7 @@ class HiveDialect(default.DefaultDialect):
                 # col_name == "", data_type is not None
                 prop_name = "{} {}".format(active_heading, data_type.rstrip())
                 properties[prop_name] = value.rstrip()
-        
+
         return {'text': properties.get('Table Parameters: comment', None), 'properties': properties}
 
     def do_rollback(self, dbapi_connection):
