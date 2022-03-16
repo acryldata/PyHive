@@ -15,7 +15,6 @@ import re
 from sqlalchemy import exc
 from sqlalchemy import processors
 from sqlalchemy import types
-from sqlalchemy import sql
 from sqlalchemy.sql import sqltypes
 from sqlalchemy import util
 # TODO shouldn't use mysql type
@@ -249,6 +248,8 @@ class HiveDialect(default.DefaultDialect):
     supports_multivalues_insert = True
     type_compiler = HiveTypeCompiler
     supports_sane_rowcount = False
+    info_rows_delimiter = ('# Detailed Table Information', None, None)
+    partition_columns_names = ['# Partition Information']
 
     @classmethod
     def dbapi(cls):
@@ -316,7 +317,7 @@ class HiveDialect(default.DefaultDialect):
         rows = [row for row in rows if row[0] and row[0] != '# col_name']
         result = []
         for (col_name, full_col_type, comment) in rows:
-            if col_name == '# Partition Information':
+            if col_name in self.partition_columns_names:
                 break
             # Take out the more detailed type information
             # e.g. 'map<int,int>' -> 'map'
@@ -353,7 +354,7 @@ class HiveDialect(default.DefaultDialect):
         # Filter out empty rows and comment
         rows = [row for row in rows if row[0] and row[0] != '# col_name']
         for i, (col_name, _col_type, _comment) in enumerate(rows):
-            if col_name == '# Partition Information':
+            if col_name in self.partition_columns_names:
                 break
         # Handle partition columns
         col_names = []
@@ -369,12 +370,12 @@ class HiveDialect(default.DefaultDialect):
         if schema:
             query += ' IN ' + self.identifier_preparer.quote_identifier(schema)
         return [row[0] for row in connection.execute(query)]
-    
+
     def get_table_comment(self, connection, table_name, schema=None, **kw):
         rows = self._get_table_columns(connection, table_name, schema, extended=True)
 
         # Remove the column type specs.
-        start_detailed_info_index = rows.index(('# Detailed Table Information', None, None))
+        start_detailed_info_index = rows.index(self.info_rows_delimiter)
         assert start_detailed_info_index >= 0
         rows = rows[start_detailed_info_index:]
 
@@ -396,7 +397,7 @@ class HiveDialect(default.DefaultDialect):
                 # col_name == "", data_type is not None
                 prop_name = "{} {}".format(active_heading, data_type.rstrip())
                 properties[prop_name] = value.rstrip()
-        
+
         return {'text': properties.get('Table Parameters: comment', None), 'properties': properties}
 
     def do_rollback(self, dbapi_connection):
