@@ -1,5 +1,7 @@
 #!/bin/bash -eux
 
+command=$1
+
 COLUMNS='
 `boolean` BOOLEAN,
 `tinyint` TINYINT,
@@ -18,7 +20,24 @@ COLUMNS='
 `decimal` DECIMAL(10, 1)
 '
 
-hive -e "
+SPARK_COLUMNS='
+`boolean` BOOLEAN,
+`tinyint` TINYINT,
+`smallint` SMALLINT,
+`int` INT,
+`bigint` BIGINT,
+`float` FLOAT,
+`double` DOUBLE,
+`string` STRING,
+`timestamp` TIMESTAMP,
+`binary` BINARY,
+`array` ARRAY<int>,
+`map` MAP<int, int>,
+`struct` STRUCT<a: int, b: int>,
+`decimal` DECIMAL(10, 1)
+'
+
+$command "
 set mapred.job.tracker=local;
 DROP TABLE IF EXISTS one_row_complex;
 DROP TABLE IF EXISTS one_row_complex_null;
@@ -56,6 +75,42 @@ INSERT OVERWRITE TABLE one_row_complex_null SELECT
     IF(false, map(1, 2, 3, 4), null),
     IF(false, named_struct('a', 1, 'b', 2), null),
     IF(false, create_union(0, 1, 'test_string'), null),
+    null
+FROM one_row;
+DROP TABLE IF EXISTS one_row_complex_spark;
+DROP TABLE IF EXISTS one_row_complex_spark_null;
+CREATE TABLE one_row_complex_spark ($SPARK_COLUMNS);
+CREATE TABLE one_row_complex_spark_null ($SPARK_COLUMNS);
+INSERT OVERWRITE TABLE one_row_complex_spark SELECT
+    true,
+    127,
+    32767,
+    2147483647,
+    9223372036854775807,
+    0.5,
+    0.25,
+    'a string',
+    0,
+    '123',
+    array(1, 2),
+    map(1, 2, 3, 4),
+    named_struct('a', 1, 'b', 2),
+    0.1
+FROM one_row;
+INSERT OVERWRITE TABLE one_row_complex_spark_null SELECT
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    IF(false, array(1, 2), null),
+    IF(false, map(1, 2, 3, 4), null),
+    IF(false, named_struct('a', 1, 'b', 2), null),
     null
 FROM one_row;
 "
