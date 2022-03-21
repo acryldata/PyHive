@@ -10,7 +10,6 @@ from sqlalchemy.engine import default
 class SparkSqlDialect(sqlalchemy_hive.HiveDialect):
     name = b'sparksql'
     execution_ctx_cls = default.DefaultExecutionContext
-    info_rows_delimiter = ('# Detailed Table Information', '', '')
     partition_columns_names = ['# Partition Information', '# Partitioning']
 
     def _get_table_columns(self, connection, table_name, schema, extended=False):
