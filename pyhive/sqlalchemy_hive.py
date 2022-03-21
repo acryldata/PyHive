@@ -249,6 +249,7 @@ class HiveDialect(default.DefaultDialect):
     type_compiler = HiveTypeCompiler
     supports_sane_rowcount = False
     info_rows_delimiter = ('# Detailed Table Information', None, None)
+    info_rows_delimiter_alternate = ('# Detailed Table Information', '', '')
     partition_columns_names = ['# Partition Information']
 
     @classmethod
@@ -375,7 +376,10 @@ class HiveDialect(default.DefaultDialect):
         rows = self._get_table_columns(connection, table_name, schema, extended=True)
 
         # Remove the column type specs.
-        start_detailed_info_index = rows.index(self.info_rows_delimiter)
+        try:
+            start_detailed_info_index = rows.index(self.info_rows_delimiter)
+        except ValueError:
+            start_detailed_info_index = rows.index(self.info_rows_delimiter_alternate)
         assert start_detailed_info_index >= 0
         rows = rows[start_detailed_info_index:]
 
