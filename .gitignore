@@ -15,3 +15,4 @@ cover/
 .cache/
 *.iml
 /scripts/.thrift_gen
+venv/

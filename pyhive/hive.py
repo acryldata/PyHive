@@ -12,6 +12,7 @@ import base64
 import datetime
 import re
 from decimal import Decimal
+from http.client import CannotSendHeader
 from ssl import CERT_NONE, CERT_OPTIONAL, CERT_REQUIRED, create_default_context
 
 
@@ -117,8 +118,6 @@ TYPES_CONVERTER = {"DECIMAL_TYPE": Decimal,
 # This was taken and modified from https://github.com/dropbox/PyHive/pull/325/files#r412841634.
 class TCookieHttpClient(thrift.transport.THttpClient.THttpClient):
     def flush(self):
-        super(TCookieHttpClient, self).flush()
-
         cookies = self.headers.get_all('Set-Cookie')
         if cookies:
             parsed = [cookie.split(';')[0] for cookie in cookies]
@@ -131,6 +130,9 @@ class TCookieHttpClient(thrift.transport.THttpClient.THttpClient):
                 {'Cookie': '; '.join(parsed)}
             )
             self.setCustomHeaders(customHeaders)
+            self.headers.pop('Set-Cookie', None)
+
+        super().flush()
 
 
 class HiveParamEscaper(common.ParamEscaper):
