@@ -16,3 +16,4 @@ cover/
 *.iml
 /scripts/.thrift_gen
 venv/
+.envrc
