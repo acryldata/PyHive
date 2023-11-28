@@ -48,7 +48,7 @@ setup(
         # We use sasl3 as a drop-in replacement for sasl, since it resolves a couple
         # build issues that sasl has, especially on MacOS systems.
         'hive': ['sasl3>=0.2.11', 'thrift>=0.10.0', 'thrift_sasl>=0.1.0'],
-        'hive_pure_sasl': ['pure-sasl>=0.6.2', 'thrift>=0.10.0', 'thrift_sasl>=0.1.0'],
+        'hive-pure-sasl': ['pure-sasl>=0.6.2', 'thrift>=0.10.0', 'thrift_sasl>=0.1.0'],
         'sqlalchemy': ['sqlalchemy>=1.3.0,<1.4.0'],
         'kerberos': ['requests_kerberos>=0.12.0'],
     },
