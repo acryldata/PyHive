@@ -118,7 +118,12 @@ TYPES_CONVERTER = {"DECIMAL_TYPE": Decimal,
 # This was taken and modified from https://github.com/dropbox/PyHive/pull/325/files#r412841634.
 class TCookieHttpClient(thrift.transport.THttpClient.THttpClient):
     def flush(self):
-        cookies = self.headers.get_all('Set-Cookie')
+        if not hasattr(self, 'headers'):
+            # Compatibility with older versions of thrift.
+            # See https://github.com/apache/thrift/commit/103a11c9c28ac963a3b2591ecac641db3cbaa113.
+            self.headers = None
+
+        cookies = self.headers.get_all('Set-Cookie') if self.headers else None
         if cookies:
             parsed = [cookie.split(';')[0] for cookie in cookies]
             customHeaders = self._THttpClient__custom_headers or {}
