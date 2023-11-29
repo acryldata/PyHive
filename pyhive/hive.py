@@ -111,14 +111,21 @@ def _parse_timestamp(value):
 TYPES_CONVERTER = {"DECIMAL_TYPE": Decimal,
                    "TIMESTAMP_TYPE": _parse_timestamp}
 
-# Setting the cookie in the headers should be implemented in the thrift library.
-# We'll keep this here until that change is available in there.
-# While this https://github.com/apache/thrift/commit/69642f389a06f5ba1b374de52c6b0e29892035d8
-# was already merged, it does not handle multiple Set-Cookie headers.
-# This was taken and modified from https://github.com/dropbox/PyHive/pull/325/files#r412841634.
+# Ideally, setting the cookie in the headers should be implemented in the thrift library.
+# There have been some changes in the thrift library to support this:
+# - https://github.com/apache/thrift/commit/69642f389a06f5ba1b374de52c6b0e29892035d8
+# - https://github.com/apache/thrift/commit/103a11c9c28ac963a3b2591ecac641db3cbaa113
+# Both of these are merged, but not released in all relevant thrift versions.
+# Additionally, they don't handle multiple Set-Cookie headers.
+# This workaround was taken and modified from https://github.com/dropbox/PyHive/pull/325/files#r412841634.
 class TCookieHttpClient(thrift.transport.THttpClient.THttpClient):
     def flush(self):
-        cookies = self.headers.get_all('Set-Cookie')
+        cookies = None
+        if hasattr(self, 'headers') and self.headers:
+            # The hasattr call maintains compatibility with older versions of
+            # thrift (<= 0.16.0), where self.headers is only initialized after
+            # the first request has been sent.
+            cookies = self.headers.get_all('Set-Cookie')
         if cookies:
             parsed = [cookie.split(';')[0] for cookie in cookies]
             customHeaders = self._THttpClient__custom_headers or {}
