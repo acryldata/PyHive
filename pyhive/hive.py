@@ -137,7 +137,7 @@ class TCookieHttpClient(thrift.transport.THttpClient.THttpClient):
                 {'Cookie': '; '.join(parsed)}
             )
             self.setCustomHeaders(customHeaders)
-            self.headers.pop('Set-Cookie', None)
+            del self.headers['Set-Cookie']
 
         super().flush()
 
