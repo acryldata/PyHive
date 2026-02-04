@@ -34,15 +34,32 @@ class PureSASLClient(SASLClient):
         # else
         return False, mechanism, None
 
-    def encode(self, incoming):
+    def encode(self, outgoing):
+        """
+        Encode (wrap) outgoing data for secure transmission to the server.
+        
+        This method is called by thrift_sasl when sending data with QOP
+        integrity (auth-int) or confidentiality (auth-conf) protection.
+        
+        Note: Prior to this fix, encode() incorrectly called unwrap() instead
+        of wrap(), and decode() called wrap() instead of unwrap(). This bug
+        existed since Feb 2016 (cloudera/impyla PR #179) but only manifests
+        when using pure-sasl with GSSAPI and auth-int/auth-conf QOP modes.
+        """
         with error_catcher(self):
-            return True, self.unwrap(incoming)
+            return True, self.wrap(outgoing)
         # else
         return False, None
 
-    def decode(self, outgoing):
+    def decode(self, incoming):
+        """
+        Decode (unwrap) incoming data received from the server.
+        
+        This method is called by thrift_sasl when receiving data with QOP
+        integrity (auth-int) or confidentiality (auth-conf) protection.
+        """
         with error_catcher(self):
-            return True, self.wrap(outgoing)
+            return True, self.unwrap(incoming)
         # else
         return False, None
 
