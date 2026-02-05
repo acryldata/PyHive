@@ -7,6 +7,8 @@
 # Hence this code is required for the fallback to work.
  
 
+import struct
+
 from puresasl.client import SASLClient, SASLError
 from contextlib import contextmanager
 
@@ -34,15 +36,43 @@ class PureSASLClient(SASLClient):
         # else
         return False, mechanism, None
 
-    def encode(self, incoming):
+    def encode(self, outgoing):
+        """
+        Encode (wrap) outgoing data for secure transmission to the server.
+        
+        This method is called by thrift_sasl when sending data with QOP
+        integrity (auth-int) or confidentiality (auth-conf) protection.
+        
+        thrift_sasl expects encode() to return data with a 4-byte big-endian
+        length header prepended (per RFC 4422 SASL framing). python-sasl's
+        encode() includes this header via Cyrus SASL, but pure-sasl's wrap()
+        returns only the wrapped payload, so we must add the header here.
+        
+        Note: Prior to this fix, encode() incorrectly called unwrap() instead
+        of wrap(), and decode() called wrap() instead of unwrap(). This bug
+        existed since Feb 2016 (cloudera/impyla PR #179) but only manifests
+        when using pure-sasl with GSSAPI and auth-int/auth-conf QOP modes.
+        """
         with error_catcher(self):
-            return True, self.unwrap(incoming)
+            wrapped = self.wrap(outgoing)
+            # Add 4-byte big-endian length header as thrift_sasl expects
+            return True, struct.pack(">I", len(wrapped)) + wrapped
         # else
         return False, None
 
-    def decode(self, outgoing):
+    def decode(self, incoming):
+        """
+        Decode (unwrap) incoming data received from the server.
+        
+        This method is called by thrift_sasl when receiving data with QOP
+        integrity (auth-int) or confidentiality (auth-conf) protection.
+        
+        thrift_sasl passes the 4-byte length header along with the payload
+        to decode(). We must strip this header before calling unwrap().
+        """
         with error_catcher(self):
-            return True, self.wrap(outgoing)
+            # thrift_sasl passes header + data, skip the 4-byte length header
+            return True, self.unwrap(incoming[4:])
         # else
         return False, None
 
